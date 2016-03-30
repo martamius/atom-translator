@@ -9,7 +9,7 @@ module.exports =
   languages: null,
   state: null,
   translationService: null,
-  chineseRegex : /[^\x00-\x7F]+/g,
+  chineseRegex : /[^\x00-\x7F]+.*[^\x00-\x7F]*/g,
   configDefaults: {
     clientId: 'atom-translator',
     # Please don't abuse!
