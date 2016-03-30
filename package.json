@@ -3,19 +3,26 @@
   "main": "./lib/translator",
   "version": "0.3.0",
   "description": "A tool to translate text via Microsoft Translator API",
-  "activationCommands": {
-    "atom-text-editor": [
-      "translator:translate"
-    ]
-  },
-  "repository": "https://github.com/alexmt/atom-translator",
+
+  "repository": "https://github.com/martamius/atom-translator",
   "license": "MIT",
   "engines": {
     "atom": ">0.50.0"
   },
   "dependencies": {
-    "atom-space-pen-views": "^2.0.3",
     "request": "~2.36.0",
-    "q": "~1.0.1"
+    "q": "~1.0.1",
+    "atom-linter": "^4.4.0",
+    "atom-package-deps": "^4.0.1"
+  },
+  "package-deps": [
+    "linter"
+  ],
+  "providedServices": {
+    "linter": {
+      "versions": {
+        "1.0.0": "provideLinter"
+      }
+    }
   }
 }

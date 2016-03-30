@@ -1,14 +1,15 @@
 TranslationService = require './translation-service'
-TranslatorView = require './translator-view'
+{CompositeDisposable} = require 'atom'
 RETRIEVE_LANGUAGES_ERROR = 'Cannot retrieve supported languages'
 TRANSLATION_FAILED = 'Translation failed'
 
 module.exports =
 
-  translatorView: null,
+
   languages: null,
   state: null,
   translationService: null,
+  chineseRegex : /[^\x00-\x7F]+/g,
   configDefaults: {
     clientId: 'atom-translator',
     # Please don't abuse!
@@ -20,56 +21,66 @@ module.exports =
     @translationService = new TranslationService(@configDefaults)
     atom.commands.add "atom-workspace", "translator:translate", => @translate()
 
-  getTranslatorView: (editor, languages) ->
-    if !@translatorView
-      @translatorView = new TranslatorView(
-        editor: editor,
-        languages: languages,
-        from: @state.from ? 'en',
-        to: @state.to ? 'ru',
-        viewHeight: @state.viewHeight,
-        azureAppSettings: {})
-      @translatorView.on 'close', => @closeTranslatorView()
-      @translatorView.on 'translateRequested', => @refreshViewTranslation(@translatorView)
-      @translatorView.on 'heightChanged', => @state.viewHeight = @translatorView.height()
-      atom.workspace.addBottomPanel(item: @translatorView)
-    else
-      @translatorView.attachToEditor(editor)
-    return @translatorView
 
-  refreshViewTranslation: (view) ->
-    @state.from = view.from.getSelectedLanguage()
-    @state.to = view.to.getSelectedLanguage()
-    view.showTranslation '...'
-    promise = @translationService.translateTextLines(
-      view.getInputTextLines(),
-      view.from.getSelectedLanguage(),
-      view.to.getSelectedLanguage())
-    promise.then(
-      ((result) -> view.showTranslation(result)),
-      ((error) -> view.showError(TRANSLATION_FAILED + ':\n' + error)) )
 
-  translate: (view) ->
-    editor = atom.workspace.getActiveTextEditor()
-    if editor
-      if !@languages
-        @translationService.getLanguages()
-          .then (languages) =>
-            @languages = languages
-            @refreshViewTranslation @getTranslatorView(editor, @languages)
-          .catch (error) =>
-            @getTranslatorView(editor, []).showError RETRIEVE_LANGUAGES_ERROR +
-              ':\n' + error
-      else
-        @refreshViewTranslation @getTranslatorView(editor, @languages)
 
-  closeTranslatorView: ->
-    if @translatorView
-      @translatorView.destroy()
-      @translatorView = null
+
 
   deactivate: ->
-    @closeTranslatorView()
+
+
+
+
+  provideLinter: () ->
+
+
+    provider = {
+      name: 'Translator',
+      grammarScopes:  ['*'],
+      scope: 'file',
+      lintOnFly: false,
+      lint: (textEditor) =>
+        return new Promise ( (fulfill, reject) =>
+
+          console.log "linting"
+          messages = []
+          matches = null
+          translationArr = []
+          for line, lineNum in textEditor.buffer.lines
+            #console.log("line: "+line + "line Num:"+lineNum)
+
+            while (matches = @chineseRegex.exec(line)) isnt null
+              continue if matches[0] is ""
+              translationArr.push(matches[0])
+              message = {
+                type: 'Info',
+                text: 'Found translation',
+                range:[[lineNum,matches.index], [lineNum,matches.index+matches[0].length]],
+                filePath: textEditor.getPath(),
+                severity: 'info'
+              }
+              messages.push(message)
+
+          promise = @translationService.translateTextLines(
+            translationArr,
+            'zh-CHS',
+            'en')
+          promise.then(
+            ((result) =>
+              resultArray = result.split('\r\n')
+              console.log(resultArray)
+              for l,ln in resultArray
+                messages[ln].text = l
+              fulfill(messages);
+
+            ),
+            ((error) -> reject(error)) )
+
+        )
+
+    }
+    return provider
+
 
   serialize: =>
     return @state
