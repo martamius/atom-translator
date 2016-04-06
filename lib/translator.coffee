@@ -50,17 +50,19 @@ module.exports =
             #console.log("line: "+line + "line Num:"+lineNum)
 
             while (matches = @chineseRegex.exec(line)) isnt null
-              continue if matches[0] is ""
-              translationArr.push(matches[0])
-              message = {
-                type: 'Info',
-                text: 'Found translation',
-                range:[[lineNum,matches.index], [lineNum,matches.index+matches[0].length]],
-                filePath: textEditor.getPath(),
-                severity: 'info'
-              }
-              messages.push(message)
 
+              if matches[0].toString() isnt ""
+                translationArr.push(matches[0])
+                message = {
+                  type: 'Info',
+                  text: 'Found translation',
+                  range:[[lineNum,matches.index], [lineNum,matches.index+matches[0].length]],
+                  filePath: textEditor.getPath(),
+                  severity: 'info'
+                }
+                messages.push(message)
+                #translationArr.push("")
+          console.log translationArr
           promise = @translationService.translateTextLines(
             translationArr,
             'zh-CHS',
@@ -69,8 +71,10 @@ module.exports =
             ((result) =>
               resultArray = result.split('\r\n')
               console.log(resultArray)
-              for l,ln in resultArray
+              for l, ln in resultArray
                 messages[ln].text = l
+                console.log(messages[ln])
+              console.log(messages);
               fulfill(messages);
 
             ),
